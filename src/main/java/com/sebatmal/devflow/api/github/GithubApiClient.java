@@ -37,6 +37,8 @@ public class GithubApiClient {
                 .headers(headers -> applyAuth(headers, accessToken))
                 .retrieve()
                 .onStatus(status -> status.isError(), (req, res) -> {
+                    final String errorBody = new String(res.getBody().readAllBytes());
+                    log.error("GitHub API 에러 [GET /user] status={}, body={}", res.getStatusCode(), errorBody);
                     throw new DevflowException(FailMessage.GITHUB_API_ERROR);
                 })
                 .body(GithubUserResponse.class);
@@ -61,6 +63,8 @@ public class GithubApiClient {
                 .headers(headers -> applyAuth(headers, accessToken))
                 .retrieve()
                 .onStatus(status -> status.isError(), (req, res) -> {
+                    final String errorBody = new String(res.getBody().readAllBytes());
+                    log.error("GitHub API 에러 [GET /orgs/{}/members] status={}, body={}", org, res.getStatusCode(), errorBody);
                     throw new DevflowException(FailMessage.GITHUB_API_ERROR);
                 })
                 .body(GithubUserResponse[].class);
@@ -73,6 +77,8 @@ public class GithubApiClient {
                 .headers(headers -> applyAuth(headers, accessToken))
                 .retrieve()
                 .onStatus(status -> status.isError(), (req, res) -> {
+                    final String errorBody = new String(res.getBody().readAllBytes());
+                    log.error("GitHub API 에러 [GET /orgs/{}/repos] status={}, body={}", org, res.getStatusCode(), errorBody);
                     throw new DevflowException(FailMessage.GITHUB_API_ERROR);
                 })
                 .body(GithubRepoResponse[].class);
@@ -101,6 +107,8 @@ public class GithubApiClient {
                 .body(payload)
                 .retrieve()
                 .onStatus(status -> status.isError(), (req, res) -> {
+                    final String errorBody = new String(res.getBody().readAllBytes());
+                    log.error("GitHub API 에러 [POST /repos/{}/{}/issues] status={}, body={}", owner, repo, res.getStatusCode(), errorBody);
                     throw new DevflowException(FailMessage.GITHUB_API_ERROR);
                 })
                 .body(GithubIssueResponse.class);
