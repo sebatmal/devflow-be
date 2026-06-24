@@ -22,8 +22,8 @@ public class JwtUtil {
     private final long accessExpirationMs;
 
     public JwtUtil(
-            @Value("${jwt.secret}") final String secret,
-            @Value("${jwt.access-expiration-ms}") final long accessExpirationMs
+            @Value("${jwt.secret:devflow-local-development-secret-key-change-me-please-0123456789}") final String secret,
+            @Value("${jwt.access-expiration-ms:86400000}") final long accessExpirationMs
     ) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessExpirationMs = accessExpirationMs;

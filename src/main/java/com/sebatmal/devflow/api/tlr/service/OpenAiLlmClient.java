@@ -25,7 +25,7 @@ public class OpenAiLlmClient implements LlmClient {
     private final String model;
 
     public OpenAiLlmClient(
-            @Value("${openai.api-key}") final String apiKey,
+            @Value("${openai.api-key:}") final String apiKey,
             @Value("${openai.model:gpt-4o-mini}") final String model,
             final ObjectMapper objectMapper
     ) {

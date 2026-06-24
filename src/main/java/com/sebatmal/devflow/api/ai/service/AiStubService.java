@@ -39,11 +39,11 @@ public class AiStubService {
     public AiStubService(
             TaskRepository taskRepository,
             ObjectMapper objectMapper,
-            @Value("${ai.python-path}") String pythonPath,
-            @Value("${ai.script-path}") String scriptPath,
-            @Value("${ai.anthropic-api-key}") String anthropicApiKey,
-            @Value("${ai.anthropic-base-url}") String anthropicBaseUrl,
-            @Value("${ai.timeout-seconds}") int timeoutSeconds
+            @Value("${ai.python-path:python3}") String pythonPath,
+            @Value("${ai.script-path:scripts/issue-decomposer.py}") String scriptPath,
+            @Value("${ai.anthropic-api-key:}") String anthropicApiKey,
+            @Value("${ai.anthropic-base-url:}") String anthropicBaseUrl,
+            @Value("${ai.timeout-seconds:60}") int timeoutSeconds
     ) {
         this.taskRepository = taskRepository;
         this.objectMapper = objectMapper;

@@ -25,10 +25,10 @@ public class GithubOAuthClient {
     private final String scope;
 
     public GithubOAuthClient(
-            @Value("${github.client-id}") final String clientId,
-            @Value("${github.client-secret}") final String clientSecret,
-            @Value("${github.redirect-uri}") final String redirectUri,
-            @Value("${github.scope}") final String scope
+            @Value("${github.client-id:}") final String clientId,
+            @Value("${github.client-secret:}") final String clientSecret,
+            @Value("${github.redirect-uri:http://localhost:8080/api/auth/github/callback}") final String redirectUri,
+            @Value("${github.scope:repo read:user read:org}") final String scope
     ) {
         this.clientId = clientId;
         this.clientSecret = clientSecret;

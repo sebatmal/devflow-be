@@ -27,7 +27,7 @@ public class GithubApiClient {
     private final RestClient restClient = RestClient.create();
     private final String apiBase;
 
-    public GithubApiClient(@Value("${github.api-base}") final String apiBase) {
+    public GithubApiClient(@Value("${github.api-base:https://api.github.com}") final String apiBase) {
         this.apiBase = apiBase;
     }
 

@@ -25,7 +25,7 @@ public class OpenAiClient {
     private final String model;
 
     public OpenAiClient(
-            @Value("${openai.api-key}") final String apiKey,
+            @Value("${openai.api-key:}") final String apiKey,
             @Value("${openai.model:gpt-4o-mini}") final String model,
             final ObjectMapper objectMapper
     ) {
