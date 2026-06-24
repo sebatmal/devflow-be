@@ -1,6 +1,7 @@
 package com.sebatmal.devflow.api.github;
 
 import com.sebatmal.devflow.api.github.dto.GithubIssueResponse;
+import com.sebatmal.devflow.api.github.dto.GithubOrgResponse;
 import com.sebatmal.devflow.api.github.dto.GithubRepoResponse;
 import com.sebatmal.devflow.api.github.dto.GithubUserResponse;
 import com.sebatmal.devflow.common.exception.DevflowException;
@@ -41,6 +42,19 @@ public class GithubApiClient {
                     throw new DevflowException(FailMessage.GITHUB_API_ERROR);
                 })
                 .body(GithubUserResponse.class);
+    }
+
+    // 로그인 유저가 속한 org 목록 (org 선택 화면용). read:org scope 필요.
+    public List<GithubOrgResponse> getUserOrgs(final String accessToken) {
+        final GithubOrgResponse[] orgs = restClient.get()
+                .uri(apiBase + "/user/orgs?per_page=100")
+                .headers(headers -> applyAuth(headers, accessToken))
+                .retrieve()
+                .onStatus(status -> status.isError(), (req, res) -> {
+                    throw new DevflowException(FailMessage.GITHUB_API_ERROR);
+                })
+                .body(GithubOrgResponse[].class);
+        return orgs == null ? List.of() : Arrays.asList(orgs);
     }
 
     public List<GithubUserResponse> getOrgMembers(final String accessToken, final String org) {
@@ -127,6 +141,31 @@ public class GithubApiClient {
         headers.setBearerAuth(accessToken);
         headers.set("Accept", ACCEPT_GITHUB_JSON);
         headers.set("X-GitHub-Api-Version", "2022-11-28");
+    }
+
+    /**
+     * lastSyncedIssueNumber 초과 + open 상태인 이슈만 가져온다.
+     * GitHub API는 since(날짜) 필터만 지원하므로 번호 필터는 클라이언트에서 처리한다.
+     */
+    public List<GithubIssueResponse> getOpenIssuesSince(
+            final String accessToken, final String owner, final String repo, final int sinceIssueNumber
+    ) {
+        final GithubIssueResponse[] issues = restClient.get()
+                .uri(apiBase + "/repos/{owner}/{repo}/issues?state=open&per_page=100&sort=created&direction=asc",
+                        owner, repo)
+                .headers(headers -> applyAuth(headers, accessToken))
+                .retrieve()
+                .onStatus(status -> status.isError(), (req, res) -> {
+                    throw new DevflowException(FailMessage.GITHUB_API_ERROR);
+                })
+                .body(GithubIssueResponse[].class);
+
+        if (issues == null) {
+            return List.of();
+        }
+        return Arrays.stream(issues)
+                .filter(issue -> issue.number() != null && issue.number() > sinceIssueNumber)
+                .toList();
     }
 
     public Optional<GithubUserResponse> getUserSafely(final String accessToken) {

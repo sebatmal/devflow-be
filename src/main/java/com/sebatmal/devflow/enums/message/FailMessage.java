@@ -43,7 +43,8 @@ public enum FailMessage {
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 50000, "서버 내부 오류가 발생했습니다."),
     AI_SCRIPT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 50001, "AI 스크립트 실행에 실패했습니다."),
     GITHUB_OAUTH_FAILED(HttpStatus.BAD_GATEWAY, 50200, "GitHub 인증에 실패했습니다."),
-    GITHUB_API_ERROR(HttpStatus.BAD_GATEWAY, 50201, "GitHub API 호출에 실패했습니다.");
+    GITHUB_API_ERROR(HttpStatus.BAD_GATEWAY, 50201, "GitHub API 호출에 실패했습니다."),
+    AI_API_ERROR(HttpStatus.BAD_GATEWAY, 50202, "AI API 호출에 실패했습니다.");
 
     private final HttpStatus httpStatus;
     private final int code;

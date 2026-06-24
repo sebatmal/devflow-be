@@ -4,6 +4,7 @@ import com.sebatmal.devflow.api.github.GithubApiClient;
 import com.sebatmal.devflow.api.github.dto.GithubRepoResponse;
 import com.sebatmal.devflow.api.github.dto.GithubUserResponse;
 import com.sebatmal.devflow.api.organization.dto.ConnectResponse;
+import com.sebatmal.devflow.api.organization.dto.OrganizationSummaryResponse;
 import com.sebatmal.devflow.api.project.dto.MemberResponse;
 import com.sebatmal.devflow.api.project.dto.ProjectResponse;
 import com.sebatmal.devflow.common.exception.DevflowException;
@@ -35,6 +36,17 @@ public class OrganizationService {
     private final MemberRepository memberRepository;
     private final ProjectRepository projectRepository;
     private final GithubApiClient githubApiClient;
+
+    /** 로그인 유저가 속한 org 목록 (선택 화면용). */
+    @Transactional(readOnly = true)
+    public List<OrganizationSummaryResponse> getMyOrganizations(final Long userId) {
+        final User user = userRepository.findById(userId)
+                .orElseThrow(() -> new DevflowException(FailMessage.NOT_FOUND_USER));
+        final String token = requireGithubToken(user);
+        return githubApiClient.getUserOrgs(token).stream()
+                .map(OrganizationSummaryResponse::from)
+                .toList();
+    }
 
     /**
      * org 연결: GitHub에서 org 멤버·레포를 가져와 upsert.
