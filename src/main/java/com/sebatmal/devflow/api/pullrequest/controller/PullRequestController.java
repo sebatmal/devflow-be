@@ -1,5 +1,7 @@
 package com.sebatmal.devflow.api.pullrequest.controller;
 
+import com.sebatmal.devflow.api.auth.resolver.AuthCredential;
+import com.sebatmal.devflow.api.auth.resolver.Authentication;
 import com.sebatmal.devflow.api.pullrequest.dto.PullRequestResponse;
 import com.sebatmal.devflow.api.pullrequest.service.PullRequestService;
 import com.sebatmal.devflow.common.response.APISuccessResponse;
@@ -22,8 +24,10 @@ public class PullRequestController {
 
     @GetMapping("/{projectId}/prs")
     public ResponseEntity<APISuccessResponse<List<PullRequestResponse>>> getPullRequests(
+            @Authentication final AuthCredential authCredential,
             @PathVariable("projectId") final Long projectId
     ) {
-        return APISuccessResponse.of(HttpStatus.OK, pullRequestService.getPullRequests(projectId));
+        return APISuccessResponse.of(HttpStatus.OK,
+                pullRequestService.getPullRequests(authCredential.userId(), projectId));
     }
 }

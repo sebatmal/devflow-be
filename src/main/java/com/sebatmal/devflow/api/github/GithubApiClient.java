@@ -1,7 +1,10 @@
 package com.sebatmal.devflow.api.github;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sebatmal.devflow.api.github.dto.GithubIssueResponse;
 import com.sebatmal.devflow.api.github.dto.GithubOrgResponse;
+import com.sebatmal.devflow.api.github.dto.GithubPullRequestData;
 import com.sebatmal.devflow.api.github.dto.GithubRepoResponse;
 import com.sebatmal.devflow.api.github.dto.GithubUserResponse;
 import com.sebatmal.devflow.common.exception.DevflowException;
@@ -12,19 +15,25 @@ import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 @Slf4j
 @Component
 public class GithubApiClient {
 
     private static final String ACCEPT_GITHUB_JSON = "application/vnd.github+json";
+    private static final String GRAPHQL_URL = "https://api.github.com/graphql";
 
     private final RestClient restClient = RestClient.create();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final String apiBase;
 
     public GithubApiClient(@Value("${github.api-base:https://api.github.com}") final String apiBase) {
@@ -166,6 +175,93 @@ public class GithubApiClient {
         return Arrays.stream(issues)
                 .filter(issue -> issue.number() != null && issue.number() > sinceIssueNumber)
                 .toList();
+    }
+
+    /**
+     * GraphQL 1쿼리로 PR 목록 + 리뷰결과·승인수·코멘트수·리뷰어를 한 번에 가져온다(비용 최소화).
+     * best-effort: 실패하면 빈 목록(안 터지게).
+     */
+    public List<GithubPullRequestData> getPullRequests(final String accessToken, final String owner, final String repo) {
+        final String query = """
+                query($owner:String!,$repo:String!){
+                  repository(owner:$owner,name:$repo){
+                    pullRequests(first:30, orderBy:{field:UPDATED_AT,direction:DESC}){
+                      nodes{
+                        number title url state isDraft createdAt
+                        author{login}
+                        reviewDecision
+                        comments{totalCount}
+                        reviews(first:50){nodes{author{login} state}}
+                        reviewRequests(first:20){nodes{requestedReviewer{... on User{login}}}}
+                      }
+                    }
+                  }
+                }""";
+        try {
+            final Map<String, Object> body = Map.of(
+                    "query", query,
+                    "variables", Map.of("owner", owner, "repo", repo)
+            );
+            final String raw = restClient.post()
+                    .uri(GRAPHQL_URL)
+                    .headers(headers -> {
+                        headers.setBearerAuth(accessToken);
+                        headers.set("Accept", "application/json");
+                    })
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(body)
+                    .retrieve()
+                    .body(String.class);
+
+            final JsonNode root = objectMapper.readTree(raw);
+            if (root.has("errors")) {
+                log.warn("GitHub GraphQL PR 조회 에러: {}", root.get("errors"));
+                return List.of();
+            }
+            final JsonNode nodes = root.path("data").path("repository").path("pullRequests").path("nodes");
+            final List<GithubPullRequestData> result = new ArrayList<>();
+            for (final JsonNode n : nodes) {
+                // 사용자별 마지막 리뷰 상태로 승인 수 계산
+                final Map<String, String> latestReview = new LinkedHashMap<>();
+                for (final JsonNode rv : n.path("reviews").path("nodes")) {
+                    final JsonNode author = rv.path("author");
+                    if (!author.isMissingNode() && !author.isNull()) {
+                        latestReview.put(author.path("login").asText(), rv.path("state").asText(""));
+                    }
+                }
+                final int approvals = (int) latestReview.values().stream().filter("APPROVED"::equals).count();
+                final Set<String> reviewers = new LinkedHashSet<>(latestReview.keySet());
+                for (final JsonNode rr : n.path("reviewRequests").path("nodes")) {
+                    final JsonNode reviewer = rr.path("requestedReviewer");
+                    if (reviewer.has("login")) {
+                        reviewers.add(reviewer.path("login").asText());
+                    }
+                }
+                final JsonNode authorNode = n.path("author");
+                final String authorLogin = (authorNode.isMissingNode() || authorNode.isNull())
+                        ? null : authorNode.path("login").asText(null);
+                final JsonNode decisionNode = n.path("reviewDecision");
+                final String reviewDecision = decisionNode.isNull() ? null : decisionNode.asText(null);
+
+                result.add(new GithubPullRequestData(
+                        n.path("number").asInt(),
+                        n.path("title").asText(""),
+                        n.path("url").asText(""),
+                        n.path("state").asText(""),
+                        n.path("isDraft").asBoolean(false),
+                        n.path("createdAt").asText(null),
+                        authorLogin,
+                        reviewDecision,
+                        n.path("comments").path("totalCount").asInt(0),
+                        approvals,
+                        new ArrayList<>(reviewers)
+                ));
+            }
+            return result;
+        } catch (final Exception e) {
+            log.warn("GitHub GraphQL PR 조회 실패(무시): {}/{} — {}", owner, repo, e.getMessage());
+            return List.of();
+        }
     }
 
     public Optional<GithubUserResponse> getUserSafely(final String accessToken) {
