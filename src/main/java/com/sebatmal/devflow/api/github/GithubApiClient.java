@@ -135,6 +135,31 @@ public class GithubApiClient {
         headers.set("X-GitHub-Api-Version", "2022-11-28");
     }
 
+    /**
+     * lastSyncedIssueNumber 초과 + open 상태인 이슈만 가져온다.
+     * GitHub API는 since(날짜) 필터만 지원하므로 번호 필터는 클라이언트에서 처리한다.
+     */
+    public List<GithubIssueResponse> getOpenIssuesSince(
+            final String accessToken, final String owner, final String repo, final int sinceIssueNumber
+    ) {
+        final GithubIssueResponse[] issues = restClient.get()
+                .uri(apiBase + "/repos/{owner}/{repo}/issues?state=open&per_page=100&sort=created&direction=asc",
+                        owner, repo)
+                .headers(headers -> applyAuth(headers, accessToken))
+                .retrieve()
+                .onStatus(status -> status.isError(), (req, res) -> {
+                    throw new DevflowException(FailMessage.GITHUB_API_ERROR);
+                })
+                .body(GithubIssueResponse[].class);
+
+        if (issues == null) {
+            return List.of();
+        }
+        return Arrays.stream(issues)
+                .filter(issue -> issue.number() != null && issue.number() > sinceIssueNumber)
+                .toList();
+    }
+
     public Optional<GithubUserResponse> getUserSafely(final String accessToken) {
         try {
             return Optional.ofNullable(getUser(accessToken));
