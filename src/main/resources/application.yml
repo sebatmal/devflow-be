@@ -1,0 +1,38 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:devflow;MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  h2:
+    console:
+      enabled: true       # http://localhost:8080/h2-console
+
+api:
+  prefix: /api
+
+# GitHub OAuth App 등록 후 env로 주입 (GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET)
+github:
+  client-id: ${GITHUB_CLIENT_ID:}
+  client-secret: ${GITHUB_CLIENT_SECRET:}
+  redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:8080/api/auth/github/callback}
+  scope: repo read:user read:org
+  api-base: https://api.github.com
+
+# 비우면 콜백이 JSON으로 토큰 반환(Postman 테스트용). 값 넣으면 그 주소로 리다이렉트(?token=).
+app:
+  frontend-redirect: ${FRONTEND_REDIRECT:}
+
+jwt:
+  secret: ${JWT_SECRET:devflow-local-development-secret-key-change-me-please-0123456789}
+  access-expiration-ms: 86400000   # 24h
