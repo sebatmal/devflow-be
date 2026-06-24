@@ -8,9 +8,11 @@ import com.sebatmal.devflow.api.github.dto.GithubUserResponse;
 import com.sebatmal.devflow.db.user.entity.User;
 import com.sebatmal.devflow.db.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthService {
@@ -43,6 +45,7 @@ public class AuthService {
                         .build()));
 
         final String accessToken = jwtUtil.createAccessToken(user.getId());
+        log.info("GitHub 로그인 완료: userId={}, login={}", user.getId(), githubUser.login());
         return new LoginResult(accessToken, user);
     }
 }

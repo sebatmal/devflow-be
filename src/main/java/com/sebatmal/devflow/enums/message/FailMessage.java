@@ -39,8 +39,9 @@ public enum FailMessage {
     CONFLICT_DUPLICATE_FEATURE_ISSUES(HttpStatus.CONFLICT, 40903, "이미 이슈가 생성된 기능입니다."),
     CONFLICT_INVALID_TASK_MOVE(HttpStatus.CONFLICT, 40904, "의존성 순서 때문에 이 주차로 옮길 수 없습니다."),
 
-    // 500 / 502 (외부 GitHub)
+    // 500 / 502 (외부 GitHub · AI)
     INTERNAL_SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 50000, "서버 내부 오류가 발생했습니다."),
+    AI_SCRIPT_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, 50001, "AI 스크립트 실행에 실패했습니다."),
     GITHUB_OAUTH_FAILED(HttpStatus.BAD_GATEWAY, 50200, "GitHub 인증에 실패했습니다."),
     GITHUB_API_ERROR(HttpStatus.BAD_GATEWAY, 50201, "GitHub API 호출에 실패했습니다.");
 

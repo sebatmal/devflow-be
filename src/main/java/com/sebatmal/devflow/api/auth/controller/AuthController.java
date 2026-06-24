@@ -6,6 +6,7 @@ import com.sebatmal.devflow.api.auth.service.AuthService;
 import com.sebatmal.devflow.common.response.APISuccessResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("${api.prefix}/auth/github")
@@ -29,6 +31,7 @@ public class AuthController {
     // 1) 로그인 시작: GitHub 인증 페이지로 리다이렉트 (FE 버튼은 이 URL로 보내기만 하면 됨)
     @GetMapping("/login")
     public void login(final HttpServletResponse response) throws IOException {
+        log.info("GitHub 로그인 시작: GitHub 인증 페이지로 리다이렉트");
         response.sendRedirect(authService.authorizeUrl());
     }
 
