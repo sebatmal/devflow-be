@@ -3,6 +3,7 @@ package com.sebatmal.devflow.api.github;
 import com.sebatmal.devflow.api.github.dto.GithubTokenResponse;
 import com.sebatmal.devflow.common.exception.DevflowException;
 import com.sebatmal.devflow.enums.message.FailMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -11,6 +12,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+@Slf4j
 @Component
 public class GithubOAuthClient {
 
@@ -46,11 +48,12 @@ public class GithubOAuthClient {
     }
 
     public String exchangeCodeForToken(final String code) {
+        // FE가 authorize 단계에서 redirect_uri 를 보내지 않으므로(OAuth App 기본 콜백 사용),
+        // 토큰 교환에서도 redirect_uri 를 보내지 않아야 redirect_uri_mismatch 가 안 난다.
         final MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
         form.add("client_id", clientId);
         form.add("client_secret", clientSecret);
         form.add("code", code);
-        form.add("redirect_uri", redirectUri);
 
         final GithubTokenResponse response = restClient.post()
                 .uri(TOKEN_URL)
@@ -64,6 +67,9 @@ public class GithubOAuthClient {
                 .body(GithubTokenResponse.class);
 
         if (response == null || response.accessToken() == null) {
+            log.warn("GitHub 토큰 교환 실패 — error={}, description={}",
+                    response == null ? "(응답 없음)" : response.error(),
+                    response == null ? "" : response.errorDescription());
             throw new DevflowException(FailMessage.GITHUB_OAUTH_FAILED);
         }
         return response.accessToken();
