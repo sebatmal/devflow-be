@@ -7,6 +7,7 @@ import com.sebatmal.devflow.api.task.dto.CreateFeatureRequest;
 import com.sebatmal.devflow.api.task.dto.CreateIssuesRequest;
 import com.sebatmal.devflow.api.task.dto.CreateIssuesResponse;
 import com.sebatmal.devflow.api.task.dto.TaskResponse;
+import com.sebatmal.devflow.api.task.dto.UpdateFeatureRequest;
 import com.sebatmal.devflow.common.exception.DevflowException;
 import com.sebatmal.devflow.db.dependency.entity.Dependency;
 import com.sebatmal.devflow.db.dependency.repository.DependencyRepository;
@@ -43,15 +44,50 @@ public class TaskService {
     private final UserRepository userRepository;
     private final GithubApiClient githubApiClient;
 
-    // ---- 조회 ----
+    @Transactional(readOnly = true)
+    public List<TaskResponse> getFeatures(final Long projectId) {
+        final List<Task> features = taskRepository.findByProjectIdAndType(projectId, TaskType.FEATURE);
+        final Map<Long, List<Long>> depsByTask = buildDepsByTask(projectId);
+        return features.stream()
+                .map(t -> TaskResponse.from(t, depsByTask.getOrDefault(t.getId(), List.of())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public TaskResponse getFeature(final Long featureId) {
+        final Task feature = findTask(featureId);
+        final List<Long> deps = dependencyRepository.findByToTaskId(featureId)
+                .stream().map(d -> d.getFromTask().getId()).toList();
+        return TaskResponse.from(feature, deps);
+    }
+
+    @Transactional
+    public TaskResponse updateFeature(final Long featureId, final UpdateFeatureRequest request) {
+        final Task feature = findTask(featureId);
+        feature.update(request.title().trim(), request.week(), request.lane());
+        final List<Long> deps = dependencyRepository.findByToTaskId(featureId)
+                .stream().map(d -> d.getFromTask().getId()).toList();
+        return TaskResponse.from(feature, deps);
+    }
+
+    @Transactional
+    public void deleteFeature(final Long featureId) {
+        final Task feature = findTask(featureId);
+        dependencyRepository.findByFromTaskId(featureId).forEach(dependencyRepository::delete);
+        dependencyRepository.findByToTaskId(featureId).forEach(dependencyRepository::delete);
+        final List<Task> children = taskRepository.findByParentId(featureId);
+        for (final Task child : children) {
+            dependencyRepository.findByFromTaskId(child.getId()).forEach(dependencyRepository::delete);
+            dependencyRepository.findByToTaskId(child.getId()).forEach(dependencyRepository::delete);
+            taskRepository.delete(child);
+        }
+        taskRepository.delete(feature);
+    }
+
     @Transactional(readOnly = true)
     public List<TaskResponse> getTasks(final Long projectId) {
         final List<Task> tasks = taskRepository.findByProjectId(projectId);
-        final Map<Long, List<Long>> depsByTask = new HashMap<>();
-        for (final Dependency d : dependencyRepository.findByFromTaskProjectId(projectId)) {
-            depsByTask.computeIfAbsent(d.getToTask().getId(), key -> new ArrayList<>())
-                    .add(d.getFromTask().getId());
-        }
+        final Map<Long, List<Long>> depsByTask = buildDepsByTask(projectId);
         return tasks.stream()
                 .map(t -> TaskResponse.from(t, depsByTask.getOrDefault(t.getId(), List.of())))
                 .toList();
@@ -235,6 +271,15 @@ public class TaskService {
         if (dependency != null) {
             list.add(dependency);
         }
+    }
+
+    private Map<Long, List<Long>> buildDepsByTask(final Long projectId) {
+        final Map<Long, List<Long>> depsByTask = new HashMap<>();
+        for (final Dependency d : dependencyRepository.findByFromTaskProjectId(projectId)) {
+            depsByTask.computeIfAbsent(d.getToTask().getId(), key -> new ArrayList<>())
+                    .add(d.getFromTask().getId());
+        }
+        return depsByTask;
     }
 
     private Task findTask(final Long taskId) {

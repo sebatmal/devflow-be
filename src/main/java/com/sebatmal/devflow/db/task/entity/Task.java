@@ -89,6 +89,12 @@ public class Task extends BaseTime {
         this.split = false;
     }
 
+    public void update(final String title, final int week, final Lane lane) {
+        this.title = title;
+        this.week = week;
+        this.lane = lane;
+    }
+
     public void moveToWeek(final int week) {
         this.week = week;
     }
