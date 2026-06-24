@@ -1,6 +1,7 @@
 package com.sebatmal.devflow.api.github;
 
 import com.sebatmal.devflow.api.github.dto.GithubIssueResponse;
+import com.sebatmal.devflow.api.github.dto.GithubOrgResponse;
 import com.sebatmal.devflow.api.github.dto.GithubRepoResponse;
 import com.sebatmal.devflow.api.github.dto.GithubUserResponse;
 import com.sebatmal.devflow.common.exception.DevflowException;
@@ -39,6 +40,19 @@ public class GithubApiClient {
                     throw new DevflowException(FailMessage.GITHUB_API_ERROR);
                 })
                 .body(GithubUserResponse.class);
+    }
+
+    // 로그인 유저가 속한 org 목록 (org 선택 화면용). read:org scope 필요.
+    public List<GithubOrgResponse> getUserOrgs(final String accessToken) {
+        final GithubOrgResponse[] orgs = restClient.get()
+                .uri(apiBase + "/user/orgs?per_page=100")
+                .headers(headers -> applyAuth(headers, accessToken))
+                .retrieve()
+                .onStatus(status -> status.isError(), (req, res) -> {
+                    throw new DevflowException(FailMessage.GITHUB_API_ERROR);
+                })
+                .body(GithubOrgResponse[].class);
+        return orgs == null ? List.of() : Arrays.asList(orgs);
     }
 
     public List<GithubUserResponse> getOrgMembers(final String accessToken, final String org) {
