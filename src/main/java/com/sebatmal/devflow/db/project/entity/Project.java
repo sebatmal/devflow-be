@@ -46,6 +46,9 @@ public class Project extends BaseTime {
     @Column(name = "d_day")
     private Integer dDay;
 
+    @Column(name = "last_synced_issue_number", nullable = false)
+    private int lastSyncedIssueNumber = 0;
+
     @Builder
     public Project(final Organization organization, final String githubRepo, final String name,
                    final String sprintLabel, final Integer dDay) {
@@ -54,9 +57,16 @@ public class Project extends BaseTime {
         this.name = name;
         this.sprintLabel = sprintLabel;
         this.dDay = dDay;
+        this.lastSyncedIssueNumber = 0;
     }
 
     public String getGithubOwner() {
         return organization.getGithubLogin();
+    }
+
+    public void updateLastSyncedIssueNumber(final int issueNumber) {
+        if (issueNumber > this.lastSyncedIssueNumber) {
+            this.lastSyncedIssueNumber = issueNumber;
+        }
     }
 }
